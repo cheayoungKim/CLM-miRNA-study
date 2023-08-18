@@ -1,0 +1,28 @@
+RNASeq <- read.table("CRCLM_readcount.txt", header=T, sep="\t", quote="\"", stringsAsFactors = FALSE)
+
+dim(RNASeq)
+row.names(RNASeq)<-RNASeq$Gene_Symbol
+RNASeq<-RNASeq[,2:ncol(RNASeq)]
+
+RNASeq = as.matrix(RNASeq)
+
+classDefinitions_RNASeq <- read.table("CRCLM_subtype.txt", header=T, sep="\t", stringsAsFactors = FALSE)
+
+## filters reads based on the counts per million (CPM) statistic.
+cpms <- cpm(RNASeq)
+keep <- rowSums(cpms > 0.13) >= 6
+counts <- RNASeq[keep,]
+
+# create data structure to hold counts and subtype information for each sample.
+d <- DGEList(counts=counts, group=classDefinitions_RNASeq$Subtype)
+
+#Normalize the data
+d <- calcNormFactors(d)
+
+#create multidimensional scaling(MDS) plot. The command below will automatically
+
+mds_filename <- file.path("C:/Users/user/Desktop/CRCLM_RNA_DEG", "mdsplot_allsamples.png")
+png(filename = mds_filename)
+mds_output <- plotMDS(d, labels=classDefinitions_RNASeq$patient, pch = 1,
+                      col= c("blue","red")[factor(classDefinitions_RNASeq$Subtype)],
+                      xlim = c(-5,5), ylim = c(-5,5))
