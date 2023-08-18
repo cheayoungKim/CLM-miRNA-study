@@ -1,0 +1,78 @@
+src_dir <- c('C:/Users/user/Desktop/CRCLM/CRCLM_WES/CRCLM_VCF')
+src_file <- list.files(src_dir, pattern = "SNU")
+src_file1 <- gsub(".vcf", "", src_file)
+src_file2 <- t(src_file1)
+src_file3 <- as.character(src_file2)
+src_file_lnc <- length(src_file)
+src_file3_lnc <- length(src_file3)
+write.table(src_file, "NGS list.txt", sep="\t")
+
+t1_length<- readLines(paste(src_dir,src_file[1],sep = "/"))
+t1<- read.table(paste(src_dir,src_file[1],sep = "/"),fill = TRUE, stringsAsFactors = FALSE)
+# fill = TRUE
+#https://stackoverflow.com/questions/32513776/how-to-read-vcf-file-in-r
+t1_length<-t1_length[-(grep("#CHROM",t1_length)+1):-(length(t1_length))]
+vcf_names<-unlist(strsplit(t1_length[length(t1_length)],"\t"))
+names(t1)<-vcf_names
+write.table(t1,paste0(src_file3[1],".txt"), sep="\t",row.names = F)
+
+for (i in seq(from=1,to=src_file_lnc)){
+  t1_length<- readLines(paste(src_dir,src_file[i],sep = "/"))
+  t1<- read.table(paste(src_dir,src_file[i],sep = "/"),fill = TRUE, stringsAsFactors = FALSE)
+  #https://stackoverflow.com/questions/32513776/how-to-read-vcf-file-in-r
+  t1_length<-t1_length[-(grep("#CHROM",t1_length)+1):-(length(t1_length))]
+  vcf_names<-unlist(strsplit(t1_length[length(t1_length)],"\t"))
+  names(t1)<-vcf_names
+  write.table(t1,paste0(src_file3[i],".txt"), sep="\t",row.names = F)
+  
+}
+
+###################################################################################
+
+vcf_dir <- c("C:/Users/user/Desktop/CRCLM/CRCLM_WES/CRCLM_VCF")    
+excel_dir <- c("C:/Users/user/Desktop/CRCLM/CRCLM_WES/CRCLM_Excel") 
+vcf_file <- list.files(vcf_dir, pattern = "SNU") 
+excel_file <- list.files(excel_dir, pattern = "SNU")
+vcf_file_lnc <- length(vcf_file)   
+excel_file_lnc <- length(excel_file)  
+write.table(vcf_file, "vcf_list.txt", sep="\t")
+write.table(excel_file, "excel_list.txt", sep="\t")
+
+
+########################################################################################
+
+for (i in seq(from=1,to=vcf_file_lnc,by=1)){
+  C2<-assign(paste0("C2_",gsub(".txt","",excel_file[i])),read.table(paste(excel_dir,excel_file[i],sep ="/"), header=T, na.strings = "NA", fill = TRUE))
+  
+  C2$POS <- gsub(",","",C2$POS)
+  
+  CC2 <- assign(paste0("CC2_",gsub(".txt","",excel_file[i])),subset(C2,select=c(POS,ALT)))
+  
+  C<-assign(paste0("C_",gsub(".txt","",vcf_file[i])),read.table(paste(vcf_dir,vcf_file[i],sep ="/"), header=T, na.strings = "NA", fill = TRUE))
+  
+  CC <- assign(paste0("CC_",gsub(".txt","",vcf_file[i])),subset(C,select=c(POS,ALT)))
+  
+  CsBim <- merge(x=CC,y=CC2,by=c('POS','ALT'),all=FALSE)
+  
+  C1 <- C
+  
+  C1$Merge <- paste(C1$POS,C1$ALT,sep = "/")
+  
+  CsBim$Merge <- paste(CsBim$POS,CsBim$ALT,sep = "/")
+  
+  
+  CSBIM <- C1 %>% filter(Merge %in% CsBim$Merge)
+  
+  write.table(CSBIM, file = paste0(gsub(".txt","",vcf_file[i]),"_CN.txt"), sep = "\t", row.names = F)
+  
+  rm(list=ls())
+  
+  
+  vcf_dir <- c("C:/Users/user/Desktop/CRCLM/CRCLM_WES/CRCLM_VCF")?  
+  excel_dir <- c("C:/Users/user/Desktop/CRCLM/CRCLM_WES/CRCLM_Excel")
+  vcf_file <- list.files(vcf_dir, pattern = "SNU")
+  excel_file <- list.files(excel_dir, pattern = "SNU")
+  vcf_file_lnc <- length(vcf_file)  
+  excel_file_lnc <- length(excel_file)  
+  
+}
