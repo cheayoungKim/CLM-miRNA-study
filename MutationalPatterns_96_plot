@@ -1,0 +1,42 @@
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("MutationalPatterns")
+library(MutationalPatterns)
+library(BSgenome)
+library("VariantAnnotation")
+head(available.genomes())
+ref_genome <- "BSgenome.Hsapiens.UCSC.hg19"
+library(ref_genome, character.only = TRUE)
+
+vcf_files <- list.files(path="C:/Users/user/Desktop/CRCLM/CRCLM_WES/Mutsig", pattern = ".vcf")
+sample_names <- c("SNU2337ACO", "SNU2337BCO","SNU2536BCO","SNU2536CCO","SNU2600ACO","SNU2600BCO","SNU2600CCO","SNU3546ACO","SNU3546BCO", "SNU5455TO", "SNU5455LTO")
+
+Annotation <- read.table("Annotation.txt", header = T, sep = "\t", na.st)
+
+signatures = get_known_signatures()
+grl <- read_vcfs_as_granges(vcf_files, sample_names, ref_genome)
+muts <- mutations_from_vcf(grl[[1]])
+head(muts, 12)
+
+types <- mut_type(grl[[1]])
+head(types, 12)
+
+context <- mut_context(grl[[1]], ref_genome)
+head(context, 12)
+
+type_context <- type_context(grl[[1]], ref_genome)
+lapply(type_context, head, 12)
+
+type_occurrences <- mut_type_occurrences(grl, ref_genome)
+type_occurrences
+
+plot_spectrum(type_occurrences, CT = TRUE)
+
+mut_mat <- mut_matrix(vcf_list = grl, ref_genome = ref_genome)
+head(mut_mat)
+
+plot_96_profile(mut_mat, ymax = 0.2)
+
+dev.copy(tiff,"CRLM_mutational_pattern.tiff",width=8, height=10, units="in",res=300) 
+dev.off()
