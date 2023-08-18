@@ -1,0 +1,102 @@
+install.packages("DESeq2")
+BiocManager::install('DESeq2')
+BiocManager::install('ggpubr')
+BiocManager::install('EnhancedVolcano')
+
+library("DESeq2")
+library(ggplot2)
+library(ggpubr)
+library(EnhancedVolcano)
+rm(list=ls())
+graphics.off()
+
+#########forMAplot#########
+
+data1 <- read.table("CRCLM_readcount.txt",sep="\t", header=T)
+cts<-data1[,2:ncol(data1)]
+cts = as.matrix(cts)
+row.names(cts)<-data1$Gene_Symbol
+head(cts)
+
+coldata <- read.table("CRCLM_subtype.txt", row.names=1, header=T)
+
+# if comparing with only one factor ignore the follow code
+coldata <- coldata[,c("condition")]
+
+# Start with this line
+coldata$condition <- factor(coldata$condition)
+head(cts,2)
+head(coldata)
+all(rownames(coldata) %in% colnames(cts))
+all(rownames(coldata) == colnames(cts))
+
+cts <- cts[, rownames(coldata)]
+all(rownames(coldata) == colnames(cts))
+
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = coldata,
+                              design = ~ condition)
+
+# Remove low reads (at least 10 reads in total)
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+# Specify the reference level
+dds$condition <- relevel(dds$condition, ref = "primary")
+
+# Perform differential expression analysis
+dds <- DESeq(dds)
+
+
+#################################################################################
+#################################################################################
+# Variance Stabilizing Transformation normalization
+# normalized by division by the size factors or normalization factors
+# The rlog is less sensitive to size factors
+
+vsd <- vst(dds)
+vsd1<- varianceStabilizingTransformation(dds, blind = TRUE, fitType = "parametric")
+norm.data = assay(vsd)
+
+#removebatcheffect from limma
+mm <- model.matrix(~condition, colData(vsd))
+mat <- limma::removeBatchEffect(norm.data, batch=vsd$condition, design=mm)
+assay(vsd) <- mat
+plotPCA(vsd)
+plotPCA(mat)
+
+dev.copy(tiff,"PCA_strong_batch_230116.tiff",width=10, height=5, units="in",res=200) 
+dev.off() 
+
+
+
+resultsNames(dds)
+BiocManager::install('apeglm')
+library(apeglm)
+
+# Shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes
+resLFC <- lfcShrink(dds, coef="condition_metastasis_vs_primary", type="apeglm")
+resLFC
+row.names(resLFC)<-rownames(dds)
+head(resLFC,2)
+write.table(resLFC, "CRCLM_deseq_res_shrink_230220.txt", sep="\t", row.names=T)
+
+
+
+data3 <- read.table("CRCLM_deseq_res_shrink_230220_2.txt",sep="\t", header=T)
+
+
+##############MAplot##################
+ggmaplot(data3, main = expression("metastasis vs primary"),
+         fdr = 0.05, fc = 0.5, size = 1.2,
+         palette = c("#B31B21", "#1465AC", "darkgray"),
+         genenames = as.vector(data3$Gene_Symbol),
+         select.top.method = c("padj", "fc"),
+         legend = "top", top = 20,
+         font.label = c("bold", 10),
+         font.legend = "bold",
+         font.main = "bold",
+         ggtheme = ggplot2::theme_minimal())
+
+dev.copy(tiff,"maplot_pvalue_230220.tiff",width=10, height=5, units="in",res=200) 
+dev.off() 
