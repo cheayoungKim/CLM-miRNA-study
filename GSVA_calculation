@@ -1,0 +1,61 @@
+library(DESeq2)
+library(qusage)
+library(GSVA)
+library(dplyr)
+library(org.Hs.eg.db)
+library(msigdbr)
+library(clusterProfiler)
+library(AnnotationDbi)
+
+data1 <- read.table("CRCLM_readcount.txt",sep="\t", header=T)
+cts<-data1[,2:ncol(data1)]
+cts = as.matrix(cts)
+row.names(cts)<-data1$Gene_Symbol
+head(cts)
+
+coldata <- read.table("CRCLM_subtype.txt", row.names=1, header=T)
+
+coldata$condition <- factor(coldata$condition)
+head(cts,2)
+head(coldata)
+all(rownames(coldata) %in% colnames(cts))
+all(rownames(coldata) == colnames(cts))
+
+cts <- cts[, rownames(coldata)]
+all(rownames(coldata) == colnames(cts))
+
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = coldata,
+                              design = ~ 1)
+vsd <- vst(dds)
+vst_df <- assay(vsd) %>%
+  as.data.frame() %>% # Make into a data frame
+  tibble::rownames_to_column("Gene_Symbol") # Make Gene IDs into their own column
+
+hallmark_gene_sets <- msigdbr::msigdbr(species = "Homo sapiens", category = "H")
+head(hallmark_gene_sets)
+
+hallmarks_list <- split(hallmark_gene_sets$entrez_gene, hallmark_gene_sets$gs_name)
+head(hallmarks_list, n = 2)
+keytypes(org.Hs.eg.db)
+
+mapped_df <- data.frame("entrez_id" = mapIds(org.Hs.eg.db, keys = vst_df$Gene_Symbol, keytype = "SYMBOL", column = "ENTREZID", multiVals = "first")) %>% dplyr::filter(!is.na(entrez_id)) %>% tibble::rownames_to_column("SYMBOL") %>% dplyr::inner_join(vst_df, by = c("SYMBOL" = "Gene_Symbol"))
+
+sum(duplicated(mapped_df$entrez_id))
+
+filtered_mapped_matrix <- mapped_df %>% dplyr::select(-SYMBOL) %>% tibble::column_to_rownames("entrez_id") %>% as.matrix()
+
+gsva_results <- gsva(filtered_mapped_matrix, hallmarks_list, method = "gsva", kcdf = "Gaussian", min.sz = 15, max.sz = 500, mx.diff = TRUE, verbose = FALSE)
+
+head(gsva_results[, 1:10])
+
+write.table(gsva_results, "CRCLM_gsva_results.txt", sep = "\t")
+
+annot_df <- coldata %>% dplyr::select(condition) %>% dplyr::mutate(Type = dplyr::case_when(stringr::str_detect(condition, "primary") ~ "primary CRC", stringr::str_detect(condition, "metastasis") ~ "liver metastasis")) %>% dplyr::select(-condition)
+
+annot_df <- annot_df %>% tibble::column_to_rownames("refinebio_accession_code")
+
+pathway_heatmap <- pheatmap::pheatmap(gsva_results,
+                                      annotation_col = annot_df, # Add metadata labels!
+                                      show_colnames = TRUE, # Don't show sample labels
+                                      fontsize_row = 6)
