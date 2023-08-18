@@ -1,0 +1,59 @@
+library(clusterProfiler)
+library(enrichplot)
+library(ggplot2)
+library(org.Hs.eg.db)
+library(DOSE)
+library(AnnotationDbi)
+library(readxl)
+library(writexl)
+library(dplyr)
+library(stats)
+library(zoo)
+library(tidyr)
+library(SPIA)
+
+
+keytypes(org.Hs.eg.db)
+
+data <- read_xlsx("SNU2337RNAseq.xlsx")
+data2 <- read.table("2337_mir_target_siggene.txt", header = TRUE, sep = "\t")
+t.data2<-t(data2) # t spin
+v.data2<-as.vector(t.data2)
+
+dataframe <- as.data.frame(data)
+
+rownames(dataframe) <- make.names(dataframe[,3])
+
+ids <- bitr(rownames(dataframe), 
+            fromType = "SYMBOL", 
+            toType = c("ENSEMBL", "ENTREZID"), 
+            OrgDb = "org.Hs.eg.db")
+
+non_duplicates <- which(duplicated(ids$SYMBOL) == FALSE)
+
+ids <- ids[non_duplicates, ] 
+merged_gene_ids <- merge(x=dataframe, y=ids, by.x="row.names", by.y="SYMBOL")        
+
+sig_genes_entrez <- merged_gene_ids %>% filter(Gene_Symbol %in% v.data2)
+sigOE_genes <- as.character(sig_genes_entrez$ENTREZID)
+allOE_genes <- as.character(merged_gene_ids$ENTREZID)
+
+##GO enrichment Dot plot##
+ego <- enrichGO(gene = sigOE_genes, 
+                universe = allOE_genes, 
+                OrgDb = org.Hs.eg.db,
+                keyType = "ENTREZID",
+                ont = "BP", 
+                pAdjustMethod = "BH", 
+                qvalueCutoff = 0.05, 
+                readable = TRUE)
+
+cluster_summary <- data.frame(ego)
+write.table(cluster_summary, "cluster_summary_2337.txt", sep = "\t")
+
+dotplot(ego, showCategory=30) 
+p2 <- cnetplot(ego, node_label="none", cex.params = list(gene_label = 0.8)) 
+p2
+
+dev.copy(tiff,"GO_analysis_2337_target_gene.tiff",width=8, height=8, units="in",res=300) 
+dev.off()
