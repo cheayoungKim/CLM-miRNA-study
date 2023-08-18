@@ -1,0 +1,84 @@
+library('writexl')
+library('readxl')
+library("stringr")
+library("tidyverse")
+library("dplyr")
+library("stringi")
+
+data <- read_excel('data3_log2FC_KCY_label.xlsx')
+dfdata <- as.data.frame(data)
+
+My_Theme = theme(
+  axis.title.x = element_text(size = 18),
+  axis.text.x = element_text(size = 16),
+  axis.text.y = element_text(size = 16),
+  axis.title.y = element_text(size = 18))
+
+#########################################5455###########################################
+
+df <- rename(dfdata, detection5455 = "KCLB22MXR2386-Detection", detection5455l = "KCLB22MXR2387-Detection")
+
+set1 <- df[, c('mirBase','set1log2FC', 'set1volume', 'detection5455', 'detection5455l', 'set1volumedetected', 'label1')]
+set1_p <- subset(set1, set1volumedetected = "TRUE")
+
+ggplot(data=set1_p, mapping=aes(x=set1volume, y=set1log2FC, fill=label1)) + geom_point(aes(col = label1), size=5) +
+  geom_hline(yintercept= c(-1.58,1.58), linetype='dashed', col = 'black', size = 0.5) + coord_cartesian(xlim = c(0,10), ylim = c(-4,4)) + 
+  xlab("Volume") + ylab("Fold change (log2)") + theme_classic() + My_Theme +
+  scale_color_manual(values = c("blue", "red", "#353436")) + theme(text = element_text(size = 20))
+
+dev.copy(tiff,"5455_volume_plot_fc1.5.tiff",width=10, height=10, units="in",res=300) 
+dev.off()
+
+################################################2600###############################################################
+
+df2 <- rename(dfdata, detection2600a = "KCLB22MXR2388-Detection", detection2600b = "KCLB22MXR2389-Detection", detection2600c = "KCLB22MXR2390-Detection")
+
+set2 <- df2[, c('mirBase','set2log2FC', 'set2volume', 'detection2600a', 'detection2600b', 'detection2600c', 'set2volumedetected', 'label2')]
+set2_p <- subset(set2, set2volumedetected = "TRUE")
+
+ggplot(data=set2_p, mapping=aes(x=set2volume, y=set2log2FC, fill=label2)) + geom_point(aes(col = label2), size = 5) +
+  geom_hline(yintercept= c(-1.58,1.58), linetype='dashed', col = 'black', size = 0.5) + coord_cartesian(xlim = c(0,10), ylim = c(-6,4)) + 
+  xlab("Volume") + ylab("Fold change (log2)") + theme_classic() + My_Theme +
+  scale_color_manual(values = c("blue", "red", "#353436")) + theme(text = element_text(size = 20))
+
+dev.copy(tiff,"2600_volume_plot_fc1.5.tiff",width=10, height=10, units="in",res=300) 
+dev.off()
+
+########################################2536###################################################
+
+df3 <- rename(dfdata, detection2536 = "KCLB22MXR2391-Detection", detection2536l = "KCLB22MXR2392-Detection")
+
+set3 <- df3[, c('mirBase','set3log2FC', 'set3volume', 'detection2536', 'detection2536l', 'set3volumedetected', 'label3')]
+set3_p <- subset(set3, set3volumedetected = "TRUE")
+
+ggplot(data=set3_p, mapping=aes(x=set3volume, y=set3log2FC, fill = label3)) + geom_point(aes(col = label3), size = 5) +
+  geom_hline(yintercept= c(-1.58,1.58), linetype='dashed', col = 'black', size = 0.5) + coord_cartesian(xlim = c(0,12.5), ylim = c(-3,3)) + xlab("Volume") + ylab("Fold change (log2)") + theme_classic() + My_Theme +
+  scale_color_manual(values = c("blue", "red", "#353436")) + theme(text = element_text(size = 20))
+
+dev.copy(tiff,"2536_volume_plot_fc1.5.tiff",width=10, height=10, units="in",res=300) 
+dev.off()
+########################################2337##########################################################
+
+df4 <- rename(dfdata, detection2337 = "KCLB22MXR2393-Detection", detection2337l = "KCLB22MXR2394-Detection")
+
+set4 <- df4[, c('mirBase','set4log2FC', 'set4volume', 'detection2337', 'detection2337l', 'set4volumedetected', 'label4')]
+set4_p <- subset(set4, set4volumedetected = "TRUE")
+
+ggplot(data=set4_p, mapping=aes(x=set4volume, y=set4log2FC, fill = label4)) + geom_point(aes(col = label4), size = 5) +
+  geom_hline(yintercept= c(-1.58,1.58), linetype='dashed', col = 'black', size = 0.5) + coord_cartesian(xlim = c(0,12), ylim = c(-3,3)) + xlab("Volume") + ylab("Fold change (log2)") + theme_classic() + My_Theme +
+  scale_color_manual(values = c("blue", "red", "#353436")) + theme(text = element_text(size = 20))    
+dev.copy(tiff,"2337_volume_plot_fc1.5.tiff",width=10, height=10, units="in",res=300) 
+dev.off()
+#######################################3546###############################################################
+
+df5 <- rename(dfdata, detection3546 = "KCLB22MXR2395-Detection", detection3546l = "KCLB22MXR2396-Detection")
+
+set5 <- df5[, c('mirBase','set5log2FC', 'set5volume', 'detection3546', 'detection3546l', 'set5volumedetected' , 'label5')]
+set5_p <- subset(set5, set5volumedetected = "TRUE")
+
+ggplot(data=set5_p, mapping=aes(x=set5volume, y=set5log2FC, fill = label5)) + geom_point(aes(col = label5), size = 5) +
+  geom_hline(yintercept= c(-1.58,1.58), linetype='dashed', col = 'black', size = 0.5) + coord_cartesian(xlim = c(0,10), ylim = c(-5,5)) + xlab("Volume") + ylab("Fold change (log2)") + theme_classic() + xlab("Volume") + ylab("Fold change (log2)") + theme_classic() + My_Theme +
+  scale_color_manual(values = c("blue", "red", "#353436")) + theme(text = element_text(size = 20))
+
+dev.copy(tiff,"3546_volume_plot_fc1.5.tiff",width=10, height=10, units="in",res=300) 
+dev.off()
