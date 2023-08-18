@@ -1,0 +1,59 @@
+##Drug heatmap
+library(gplots)
+library(RColorBrewer)
+library(circlize)
+
+# read the drug response data
+data1 <-read.table("crclm_gsva_heatmap_input.txt", header=T, sep="\t", na.strings = "NA", fill=T)
+row.names(data1)<-data1$Hallmark
+r.data1<-data1[,-1]
+r.data1_matrix<-data.matrix(r.data1)
+r.data1_round <- round(r.data1_matrix, digits = 2)
+
+#hallmark order
+data2 <- read.table("hallmark_annotation.txt", header=T, sep="\t", na.strings = "NA", fill=T)
+f.data2<-as.character(t(data2$Process))
+v.data2<-as.vector(f.data2)
+
+row_split =rep("group1", 49)
+row_split[6:8] = "group2"
+row_split[9:15] = "group3"
+row_split[16:18] = "group4"
+row_split[19:25] = "group5"
+row_split[26:30] = "group6"
+row_split[31:36] = "group7"
+row_split[37:49] = "group8"
+
+#sample set
+data3<- read.table("crclm_gsva_annotation_2.txt", header=T, sep="\t", na.strings = "NA", fill=T)
+f.data3<-as.character(t(data3$Sample))
+v.data3<-as.vector(f.data3)
+
+column_split = rep("group1", 11)
+column_split[3:4] = "group2"
+column_split[5:7] = "group3"
+column_split[8:9] = "group4"
+column_split[10:11] = "group5"
+
+library(circlize)
+col_fun = colorRamp2(c(-0.3, 0, 0.2), c("#009c0d", "white", "#a80068"))
+col_fun(seq(-3, 3))
+
+heatmap_legend_param = list(legend_height=unit(5,"cm"), grid_width=unit(1,"cm"), labels_gp = gpar(fontsize = 20), title_gp=gpar(fontsize=14), legend_direction = "vertical")
+
+# draw heatmap k-means clustering 
+
+ht1 <- Heatmap(r.data1_matrix, name = "Score", col = col_fun, 
+               row_km_repeats = 100, row_order = v.data2,
+               column_km_repeats = 100,  column_km = 5, show_row_names = FALSE,
+               column_dend_height = unit(4, "cm"),
+               show_row_dend = FALSE,
+               row_names_gp = gpar(fontsize = 25), 
+               column_names_gp = gpar(fontsize = 25),
+               heatmap_legend_param = heatmap_legend_param,
+               row_gap = unit(3, "mm"),
+               column_gap = unit(3, "mm"),
+               cell_fun = function(j, i, x, y, width, height, fill) {
+                 grid.text(r.data1_matrix[i, j], x, y, gp = gpar(fontsize = 10))})
+
+draw(ht1, heatmap_legend_side = "left")
