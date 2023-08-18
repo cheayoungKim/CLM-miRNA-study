@@ -1,0 +1,119 @@
+library(mixOmics)
+library(BPPARAM)
+library(BiocParallel)
+rm(list = ls())
+
+# extract training data
+x1 <- read.table("CRCLM_diablo_mRNA.txt", header = TRUE, sep = "\t")
+x2 <- read.table("CRCLM_diablo_mirna.txt", header = TRUE, sep = "\t")
+x3 <- read.table("CRCLM_diablo_drug.txt", header = TRUE, sep = "\t")
+head(x2, 1)
+
+row.names(x1) <- x1[,1]
+x1 <- x1[,-1]
+row.names(x2) <- x2[,1]
+x2 <- x2[,-1]
+row.names(x3) <- x3[,1]
+x3 <- x3[,-1]
+
+X <- list(mrna = x1, mirna = x2, drug = x3)
+
+# check dimension
+lapply(X, dim)
+
+# outcome
+Y <- c("primary","metastasis","primary","metastasis","primary","metastasis","metastasis","primary","metastasis","metastasis","primary")
+summary(Y)
+
+###################################################
+### code chunk number 3: DIABLO-analysis.Rnw:175-179
+###################################################
+design = matrix(0.1, ncol = length(X), nrow = length(X), 
+                dimnames = list(names(X), names(X)))
+diag(design) = 0 # set diagonal to 0s
+design
+
+###################################################
+### code chunk number 4: DIABLO-analysis.Rnw:186-198
+###################################################
+basic.diablo.model = block.splsda(X = X, Y = Y, ncomp = 5, design = design) 
+
+###############Tuning###############
+
+perf.diablo = perf(basic.diablo.model, validation = 'Mfold', 
+                   folds = 10, nrepeat = 10) 
+
+#perf.diablo  # lists the different outputs
+plot(perf.diablo)
+
+###################################################
+### code chunk number 5: DIABLO-analysis.Rnw:204-206
+###################################################
+ncomp = perf.diablo$choice.ncomp$WeightedVote["Overall.BER", "centroids.dist"] 
+perf.diablo$choice.ncomp$WeightedVote 
+
+test.keepX = list (mRNA = c(5:9, seq(10, 18, 2), seq(20,30,5)), 
+                   miRNA = c(5:9, seq(10, 18, 2), seq(20,30,5)),
+                   proteomics = c(5:9, seq(10, 18, 2), seq(20,30,5)))
+
+
+t1 = proc.time()
+tune.CRCLM = tune.block.splsda(X = X, Y = Y, ncomp = ncomp, 
+                              test.keepX = test.keepX, design = design,
+                              validation = 'Mfold', folds = 5, nrepeat = 1,
+                              dist = "centroids.dist", max.iter = 100)
+
+t2 = proc.time()
+running_time = t2 - t1; running_time
+
+list.keepX = tune.CRCLM$choice.keepX
+list.keepX
+
+save(tune.CRCLM,list.keepX, running_time, file = 'C:/Users/user/Desktop/CRCLM/CRCLM_diablo/DIABLO_0316.RData')
+
+BPPARAM <- BiocParallel::SnowParam(workers = parallel::detectCores()-1)
+
+
+sgccda.res = block.splsda(X = X, Y = Y, ncomp = ncomp, 
+                          keepX = list.keepX, design = design)
+
+sgccda.res$design
+
+# mRNA variables selected on component 1
+selectVar(sgccda.res, block = 'mrna', comp = 1)
+
+plotIndiv(sgccda.res, ind.names = FALSE, legend = TRUE,  style="ggplot2")
+
+dev.copy(tiff,"CRCLM_diablo_indiv_0316.tiff",width=10, height=10, units="in",res=200) 
+dev.off()
+
+plotArrow(sgccda.res, ind.names = FALSE, legend = TRUE, title = 'DIABLO')
+
+dev.copy(tiff,"CRCLM_diablo_arrow_0316.tiff",width=10, height=10, units="in",res=200) 
+dev.off()
+
+plotVar(sgccda.res, var.names = FALSE, style = 'graphics', legend = TRUE, 
+        pch = c(16, 17, 15), cex = c(2,2,2), col = c('darkorchid', 'brown1', 'lightgreen'))
+
+
+circosPlot(sgccda.res, cutoff = 0.825, line = TRUE, 
+           color.Y = c('#d6002e','#0384fc'),
+           color.blocks= c('darkorchid', 'brown1', 'lightgreen'),
+           color.cor = c("orangered","navy"), size.labels = 1.5, size.variables = 0.1,  linkWidth = 2)
+
+dev.copy(tiff,"CRCLM_diablo_circos_nolabel_0401.tiff",width=10, height=10, units="in",res=200) 
+dev.off() 
+
+
+plotLoadings(sgccda.res, comp = 2, contrib = 'max', method = 'median')
+
+dev.copy(tiff,"CRCLM_diablo_load_2_2.tiff",width=7, height=7, units="in",res=200) 
+dev.off()
+
+cimDiablo(sgccda.res, color.Y = c('#d6002e','#0384fc'),
+          color.blocks = c('darkorchid', 'brown1', 'lightgreen'),
+          comp = 1, margin=c(8,20), legend.position = "topright", size.legend = 0.7,
+          row.names = TRUE, col.names = TRUE)
+
+dev.copy(tiff,"CRCLM_diablo_cimdiablo_0401.tiff",width=10, height=12, units="in",res=200) 
+dev.off() 
