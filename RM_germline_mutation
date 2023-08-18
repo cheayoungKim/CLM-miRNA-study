@@ -1,0 +1,14 @@
+#SNU Normal Organoid (Germline mutation) Panel sorting
+normal_panel<- as.vector(t(read.table("normal_list_total_230117.txt", header = T, sep="\t", na.strings = "NA")))
+clinvar_total <- as.vector(t(read.table("clinvar_total_pathogenic_only.txt", header = T, sep="\t", na.strings = "NA")))
+
+SNU2337A_shared <-intersect(SNU2337A$UniqueName, normal_panel)
+SNU2337A_somatic <- SNU2337A[!(SNU2337A$UniqueName %in% SNU2337A_shared),]
+SNU2337A_clinvar <- SNU2337A_somatic %>% filter(UniqueName %in% clinvar_total) #Clinvar searching list
+
+# Matched normal (Germline mutation) sorting
+data1 <- read.table("snu3997to_unique.txt", header = T, sep="\t", na.strings = "NA")
+normal<- as.vector(t(read.table("normal_list_total_230117.txt", header = T, sep="\t", na.strings = "NA")))
+shared1<-intersect(data1$UniqueName, normal)
+data3<- data1[!(data1$UniqueName %in% shared1),]
+data3$VAF <- as.numeric(gsub(",","",data3$AD))/as.numeric(gsub(",","",data3$DP))
